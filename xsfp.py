@@ -56,16 +56,24 @@ if __name__ == "__main__":
         headers = {"Authorization": f"Bearer {bearer}"}
 
     # Send a GET call to the ethpmFcot endpoint. Include the Authentication Header
-    response = apic_session.get(f"https://{apic_ip}/api/node/class/ethpmFcot.json", verify=False, headers=headers)
-
+    page = 0
+    counter = 0
+    data = []
     f = open('./xsfp.csv', 'w')
     writer = csv.writer(f)
-
     writer.writerow(["dn", "node", "port", "actualType", "guiCiscoPID", "guiCiscoPN", "guiName", "guiPN"])
-    for eth in response.json()["imdata"]:
-        if eth['ethpmFcot']['attributes']['actualType'] != "unknown":
-            node_port = get_node_and_port(eth['ethpmFcot']['attributes']['dn'])
-            row = [eth['ethpmFcot']['attributes']['dn'], node_port[0], node_port[1], eth['ethpmFcot']['attributes']['actualType'], eth['ethpmFcot']['attributes']['guiCiscoPID'], eth['ethpmFcot']['attributes']['guiCiscoPN'], eth['ethpmFcot']['attributes']['guiName'], eth['ethpmFcot']['attributes']['guiPN']]
-            writer.writerow(row)
+
+    while True:
+        response = apic_session.get(f"https://{apic_ip}/api/node/class/ethpmFcot.json?order-by=ethpmFcot.dn&page={page}&page-size=100", verify=False, headers=headers)
+        if len(response.json()["imdata"]) != 0:
+            page = page +  1
+            for eth in response.json()["imdata"]:
+                if eth['ethpmFcot']['attributes']['actualType'] != "unknown":
+                    counter = counter + 1
+                    node_port = get_node_and_port(eth['ethpmFcot']['attributes']['dn'])
+                    row = [eth['ethpmFcot']['attributes']['dn'], node_port[0], node_port[1], eth['ethpmFcot']['attributes']['actualType'], eth['ethpmFcot']['attributes']['guiCiscoPID'], eth['ethpmFcot']['attributes']['guiCiscoPN'], eth['ethpmFcot']['attributes']['guiName'], eth['ethpmFcot']['attributes']['guiPN']]
+                    writer.writerow(row)       
+        else:
+            break
     f.close()
-    
+

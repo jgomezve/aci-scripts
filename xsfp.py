@@ -3,9 +3,18 @@ import urllib3
 import requests
 import argparse
 import csv
+import re
 
 # Disable self-signed certificate warning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def get_node_and_port(dn):
+    m = re.search('node-(.+?)/sys', dn)
+    node = m.group(1)
+    m = re.search('phys-(.+?)/phys', dn)
+    port = m.group(1).replace('[eth', '').replace(']','')
+    return node, port
 
 if __name__ == "__main__":
 
@@ -52,10 +61,11 @@ if __name__ == "__main__":
     f = open('./xsfp.csv', 'w')
     writer = csv.writer(f)
 
-    writer.writerow(["dn", "actualType", "guiCiscoPID", "guiCiscoPN", "guiName", "guiPN"])
+    writer.writerow(["dn", "node", "port", "actualType", "guiCiscoPID", "guiCiscoPN", "guiName", "guiPN"])
     for eth in response.json()["imdata"]:
         if eth['ethpmFcot']['attributes']['actualType'] != "unknown":
-            row = [eth['ethpmFcot']['attributes']['dn'], eth['ethpmFcot']['attributes']['actualType'], eth['ethpmFcot']['attributes']['guiCiscoPID'], eth['ethpmFcot']['attributes']['guiCiscoPN'], eth['ethpmFcot']['attributes']['guiName'], eth['ethpmFcot']['attributes']['guiPN']]
+            node_port = get_node_and_port(eth['ethpmFcot']['attributes']['dn'])
+            row = [eth['ethpmFcot']['attributes']['dn'], node_port[0], node_port[1], eth['ethpmFcot']['attributes']['actualType'], eth['ethpmFcot']['attributes']['guiCiscoPID'], eth['ethpmFcot']['attributes']['guiCiscoPN'], eth['ethpmFcot']['attributes']['guiName'], eth['ethpmFcot']['attributes']['guiPN']]
             writer.writerow(row)
     f.close()
     
